@@ -4,19 +4,19 @@ import { createHash } from 'crypto'
 import { client, networkInfo } from '../../../utils/config'
 import { createCommercialRemixTerms, SPGNFTContractAddress } from '../../../utils/utils'
 import { IpMetadata } from '@story-protocol/core-sdk'
-import { readMusicData, writeMusicData, type MusicData } from '../../../utils/storage'
+import { readAssetData, writeAssetData, type AssetData } from '../../../utils/storage'
 
 // Force dynamic rendering to prevent caching
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Starting music upload and IP registration process...')
-  
+
   try {
     // Parse form data
     console.log('📦 Step 1: Parsing form data...')
     const formData = await request.formData()
-    
+
     const title = formData.get('title') as string
     const artist = formData.get('artist') as string
     const description = formData.get('description') as string || ''
@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
     const owner = formData.get('owner') as string
     // Ensure owner address is properly formatted as hex
     if (!owner.startsWith('0x')) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Invalid owner address format' 
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid owner address format'
       }, { status: 400 })
     }
     const audioFile = formData.get('audioFile') as File
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
 
     if (!title || !artist || !audioFile || !owner) {
       console.error('❌ Missing required fields')
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields' 
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields'
       }, { status: 400 })
     }
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     // Step 4: Create IP metadata
     console.log('📝 Step 4: Creating IP metadata...')
     const audioHash = createHash('sha256').update(audioBuffer).digest('hex')
-    
+
     const ipMetadata: IpMetadata = client.ipAsset.generateIpMetadata({
       title: title,
       description: description || `A music track by ${artist}`,
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const ipHash = createHash('sha256').update(JSON.stringify(ipMetadata)).digest('hex')
     const nftIpfsHash = await uploadJSONToIPFS(nftMetadata)
     const nftHash = createHash('sha256').update(JSON.stringify(nftMetadata)).digest('hex')
-    
+
     console.log('✅ IP metadata uploaded to IPFS:', `https://ipfs.io/ipfs/${ipIpfsHash}`)
     console.log('✅ NFT metadata uploaded to IPFS:', `https://ipfs.io/ipfs/${nftIpfsHash}`)
 
@@ -141,9 +141,9 @@ export async function POST(request: NextRequest) {
       spgNftContract: SPGNFTContractAddress,
       licenseTermsData: [
         {
-          terms: createCommercialRemixTerms({ 
-            defaultMintingFee: parseFloat(price) || 1, 
-            commercialRevShare: 5 
+          terms: createCommercialRemixTerms({
+            defaultMintingFee: parseFloat(price) || 1,
+            commercialRevShare: 5
           }),
         },
       ],
@@ -168,14 +168,15 @@ export async function POST(request: NextRequest) {
 
     // Step 8: Save to local storage
     console.log('💾 Step 8: Saving to local storage...')
-    const musicData: MusicData = {
+    const musicData: AssetData = {
       id: response.ipId || Date.now().toString(),
+      type: 'music',
       title,
       artist,
       description,
       price,
-      audioUrl,
-      imageUrl,
+      mediaUrl: audioUrl,
+      coverUrl: imageUrl,
       owner,
       metadataUrl: `https://ipfs.io/ipfs/${nftIpfsHash}`,
       createdAt: new Date().toISOString(),
@@ -183,9 +184,9 @@ export async function POST(request: NextRequest) {
       txHash: response.txHash,
     }
 
-    const existingData = await readMusicData()
+    const existingData = await readAssetData()
     existingData.push(musicData)
-    await writeMusicData(existingData)
+    await writeAssetData(existingData)
     console.log('✅ Data saved to storage')
 
     // Step 9: Return success response
@@ -208,7 +209,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('💥 Error in upload process:', error)
-    
+
     // More detailed error logging
     if (error instanceof Error) {
       console.error('💥 Error message:', error.message)

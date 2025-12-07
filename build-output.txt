@@ -1,0 +1,72 @@
+﻿  Γû▓ Next.js 14.2.30
+  - Environments: .env
+
+   Creating an optimized production build ...
+node.exe : Browserslist: 
+browsers data 
+(caniuse-lite) is 7 months 
+old. Please run:
+At C:\Program 
+Files\nodejs\npx.ps1:29 
+char:3
++   & $NODE_EXE $NPX_CLI_JS 
+$args
++   ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          
+    : NotSpecified: (Brows  
+  erslist: b...ld. Please   
+  run::String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+  npx update-browserslist-db
+@latest
+  Why you should do it 
+regularly: https://github.co
+m/browserslist/update-db#rea
+dme
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+ ΓÜá Using edge runtime on 
+a page currently disables 
+static generation for that 
+page
+   Generating static pages (0/14) ...
+   Generating static pages (3/14) 
+   Generating static pages (6/14) 
+   Generating static pages (10/14) 
+ Γ£ô Generating static pages (14/14)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+Γöî Γùï /                                    4.02 kB         685 kB
+Γö£ Γùï /_not-found                          880 B          89.7 kB
+Γö£ Γùï /admin                               4.92 kB         686 kB
+Γö£ Γùï /ai                                  9.29 kB         687 kB
+Γö£ ╞Æ /api/admin-comment                   0 B                0 B
+Γö£ ╞Æ /api/delete-music                    0 B                0 B
+Γö£ ╞Æ /api/get-assets                      0 B                0 B
+Γö£ ╞Æ /api/get-music                       0 B                0 B
+Γö£ ╞Æ /api/notifications                   0 B                0 B
+Γö£ ╞Æ /api/perplexity                      0 B                0 B
+Γö£ ╞Æ /api/toggle-hide                     0 B                0 B
+Γö£ ╞Æ /api/upload-asset                    0 B                0 B
+Γö£ ╞Æ /api/upload-music                    0 B                0 B
+Γö£ Γùï /dashboard                           5 kB            683 kB
+Γö£ Γùï /explore                             2.39 kB         684 kB
+Γö£ ╞Æ /icon                                0 B                0 B
+Γö£ Γùï /notifications                       3.38 kB         681 kB
+Γöö Γùï /upload                              5.13 kB         683 kB
++ First Load JS shared by all            88.8 kB
+  Γö£ chunks/2117-3e8043bcd0916edf.js      31.8 kB
+  Γö£ chunks/fd9d1056-3ca12b63442747a7.js  53.6 kB
+  Γöö other shared chunks (total)          3.42 kB
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
