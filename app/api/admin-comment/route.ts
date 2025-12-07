@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readMusicData, writeMusicData, MusicData } from '../../../utils/storage'
+import { readAssetData, writeAssetData, AssetData } from '../../../utils/storage'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,24 +16,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Read current music data
-    const musicData = await readMusicData()
+    // Read current asset data (all types)
+    const assetData = await readAssetData()
 
-    // Find the music by id
-    const musicIndex = musicData.findIndex((m: MusicData) => m.id === id)
+    // Find the asset by id
+    const assetIndex = assetData.findIndex((a: AssetData) => a.id === id)
 
-    if (musicIndex === -1) {
+    if (assetIndex === -1) {
       return NextResponse.json(
-        { success: false, error: 'Music not found' },
+        { success: false, error: 'Asset not found' },
         { status: 404 }
       )
     }
 
-    const music = musicData[musicIndex]
+    const asset = assetData[assetIndex]
 
-    // Add comment to the music
-    if (!music.adminComments) {
-      music.adminComments = []
+    // Add comment to the asset
+    if (!asset.adminComments) {
+      asset.adminComments = []
     }
 
     const newComment = {
@@ -44,11 +44,11 @@ export async function POST(request: NextRequest) {
       read: false,
     }
 
-    music.adminComments.push(newComment)
-    musicData[musicIndex] = music
+    asset.adminComments.push(newComment)
+    assetData[assetIndex] = asset
 
     // Save updated data
-    await writeMusicData(musicData)
+    await writeAssetData(assetData)
 
     return NextResponse.json({
       success: true,
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Get comments for a music
+// GET - Get comments for an asset
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -77,19 +77,19 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const musicData = await readMusicData()
-    const music = musicData.find((m: MusicData) => m.id === id)
+    const assetData = await readAssetData()
+    const asset = assetData.find((a: AssetData) => a.id === id)
 
-    if (!music) {
+    if (!asset) {
       return NextResponse.json(
-        { success: false, error: 'Music not found' },
+        { success: false, error: 'Asset not found' },
         { status: 404 }
       )
     }
 
     return NextResponse.json({
       success: true,
-      comments: music.adminComments || [],
+      comments: asset.adminComments || [],
     })
   } catch (error) {
     console.error('Error getting comments:', error)

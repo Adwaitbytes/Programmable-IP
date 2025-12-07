@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readMusicData, writeMusicData, MusicData } from '../../../utils/storage'
+import { readAssetData, writeAssetData, AssetData } from '../../../utils/storage'
 
 export const dynamic = 'force-dynamic'
 
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const musicId = searchParams.get('id')
+    const assetId = searchParams.get('id')
     const ownerAddress = searchParams.get('owner')
 
-    if (!musicId) {
+    if (!assetId) {
       return NextResponse.json(
-        { error: 'Music ID is required' },
+        { error: 'Asset ID is required' },
         { status: 400 }
       )
     }
@@ -23,51 +23,52 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    console.log('🗑️ Deleting music with ID:', musicId)
+    console.log('🗑️ Deleting asset with ID:', assetId)
     console.log('👤 Requester address:', ownerAddress)
 
-    // Read current data
-    const musicData = await readMusicData()
+    // Read current data (all asset types)
+    const assetData = await readAssetData()
 
-    // Find the music to delete
-    const musicToDelete = musicData.find((m: MusicData) => m.id === musicId)
-    if (!musicToDelete) {
+    // Find the asset to delete
+    const assetToDelete = assetData.find((a: AssetData) => a.id === assetId)
+    if (!assetToDelete) {
       return NextResponse.json(
-        { error: 'Music not found' },
+        { error: 'Asset not found' },
         { status: 404 }
       )
     }
 
     // Verify ownership - case insensitive comparison
-    if (musicToDelete.owner.toLowerCase() !== ownerAddress.toLowerCase()) {
+    if (assetToDelete.owner.toLowerCase() !== ownerAddress.toLowerCase()) {
       console.log('❌ Ownership verification failed')
-      console.log('   Music owner:', musicToDelete.owner)
+      console.log('   Asset owner:', assetToDelete.owner)
       console.log('   Requester:', ownerAddress)
       return NextResponse.json(
-        { error: 'You can only delete your own music. Ownership verification failed.' },
+        { error: 'You can only delete your own assets. Ownership verification failed.' },
         { status: 403 }
       )
     }
 
     console.log('✅ Ownership verified')
 
-    // Filter out the deleted music
-    const updatedData = musicData.filter((m: MusicData) => m.id !== musicId)
+    // Filter out the deleted asset
+    const updatedData = assetData.filter((a: AssetData) => a.id !== assetId)
 
     // Save updated data
-    await writeMusicData(updatedData)
+    await writeAssetData(updatedData)
 
-    console.log('✅ Successfully deleted:', musicToDelete.title)
-    console.log(`📊 Remaining tracks: ${updatedData.length}`)
+    console.log('✅ Successfully deleted:', assetToDelete.title, `(${assetToDelete.type})`)
+    console.log(`📊 Remaining assets: ${updatedData.length}`)
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Music deleted successfully',
+        message: 'Asset deleted successfully',
         deleted: {
-          id: musicToDelete.id,
-          title: musicToDelete.title,
-          artist: musicToDelete.artist,
+          id: assetToDelete.id,
+          title: assetToDelete.title,
+          artist: assetToDelete.artist,
+          type: assetToDelete.type,
         },
         remaining: updatedData.length,
       },
@@ -79,10 +80,10 @@ export async function DELETE(req: NextRequest) {
       }
     )
   } catch (error) {
-    console.error('❌ Error deleting music:', error)
+    console.error('❌ Error deleting asset:', error)
     return NextResponse.json(
       {
-        error: 'Failed to delete music',
+        error: 'Failed to delete asset',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }

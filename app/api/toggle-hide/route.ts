@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readMusicData, writeMusicData, MusicData } from '../../../utils/storage'
+import { readAssetData, writeAssetData, AssetData } from '../../../utils/storage'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,38 +14,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Read current music data
-    const musicData = await readMusicData()
+    // Read current asset data (all types)
+    const assetData = await readAssetData()
 
-    // Find the music by id
-    const musicIndex = musicData.findIndex((m: MusicData) => m.id === id)
+    // Find the asset by id
+    const assetIndex = assetData.findIndex((a: AssetData) => a.id === id)
 
-    if (musicIndex === -1) {
+    if (assetIndex === -1) {
       return NextResponse.json(
-        { success: false, error: 'Music not found' },
+        { success: false, error: 'Asset not found' },
         { status: 404 }
       )
     }
 
     // Verify ownership (case-insensitive)
-    if (musicData[musicIndex].owner.toLowerCase() !== owner.toLowerCase()) {
+    if (assetData[assetIndex].owner.toLowerCase() !== owner.toLowerCase()) {
       return NextResponse.json(
-        { success: false, error: 'Not authorized - you do not own this music' },
+        { success: false, error: 'Not authorized - you do not own this asset' },
         { status: 403 }
       )
     }
 
     // Toggle hidden state
-    const currentHiddenState = musicData[musicIndex].hidden || false
-    musicData[musicIndex].hidden = !currentHiddenState
+    const currentHiddenState = assetData[assetIndex].hidden || false
+    assetData[assetIndex].hidden = !currentHiddenState
 
     // Save updated data
-    await writeMusicData(musicData)
+    await writeAssetData(assetData)
 
     return NextResponse.json({
       success: true,
-      message: musicData[musicIndex].hidden ? 'Music hidden from explore page' : 'Music visible on explore page',
-      hidden: musicData[musicIndex].hidden,
+      message: assetData[assetIndex].hidden ? 'Asset hidden from explore page' : 'Asset visible on explore page',
+      hidden: assetData[assetIndex].hidden,
     })
   } catch (error) {
     console.error('Error toggling hide:', error)

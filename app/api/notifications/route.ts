@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readMusicData, writeMusicData, MusicData } from '../../../utils/storage'
+import { readAssetData, writeAssetData, AssetData } from '../../../utils/storage'
 
 // GET - Get all notifications for a user
 export async function GET(request: NextRequest) {
@@ -14,24 +14,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const musicData = await readMusicData()
-    
-    // Get all music owned by this user
-    const userMusic = musicData.filter(
-      (m: MusicData) => m.owner.toLowerCase() === owner.toLowerCase()
+    const assetData = await readAssetData()
+
+    // Get all assets owned by this user
+    const userAssets = assetData.filter(
+      (a: AssetData) => a.owner.toLowerCase() === owner.toLowerCase()
     )
 
-    // Collect all comments from user's music
+    // Collect all comments from user's assets
     const notifications: any[] = []
-    
-    userMusic.forEach((music) => {
-      if (music.adminComments && music.adminComments.length > 0) {
-        music.adminComments.forEach((comment) => {
+
+    userAssets.forEach((asset) => {
+      if (asset.adminComments && asset.adminComments.length > 0) {
+        asset.adminComments.forEach((comment) => {
           notifications.push({
             id: comment.id,
-            musicId: music.id,
-            musicTitle: music.title,
-            musicImage: music.imageUrl,
+            assetId: asset.id,
+            assetTitle: asset.title,
+            assetType: asset.type,
+            assetImage: asset.coverUrl || asset.mediaUrl,
             admin: comment.admin,
             comment: comment.comment,
             timestamp: comment.timestamp,
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Sort by timestamp (newest first)
-    notifications.sort((a, b) => 
+    notifications.sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
 
@@ -64,27 +65,30 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { commentId, musicId, owner } = body
+    const { commentId, musicId, assetId, owner } = body
 
-    if (!commentId || !musicId || !owner) {
+    // Support both old musicId and new assetId for backwards compatibility
+    const targetAssetId = assetId || musicId
+
+    if (!commentId || !targetAssetId || !owner) {
       return NextResponse.json(
-        { success: false, error: 'Missing commentId, musicId, or owner' },
+        { success: false, error: 'Missing commentId, assetId, or owner' },
         { status: 400 }
       )
     }
 
-    const musicData = await readMusicData()
-    const musicIndex = musicData.findIndex((m: MusicData) => m.id === musicId)
+    const assetData = await readAssetData()
+    const assetIndex = assetData.findIndex((a: AssetData) => a.id === targetAssetId)
 
-    if (musicIndex === -1) {
+    if (assetIndex === -1) {
       return NextResponse.json(
-        { success: false, error: 'Music not found' },
+        { success: false, error: 'Asset not found' },
         { status: 404 }
       )
     }
 
     // Verify ownership
-    if (musicData[musicIndex].owner.toLowerCase() !== owner.toLowerCase()) {
+    if (assetData[assetIndex].owner.toLowerCase() !== owner.toLowerCase()) {
       return NextResponse.json(
         { success: false, error: 'Not authorized' },
         { status: 403 }
@@ -92,16 +96,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark comment as read
-    if (musicData[musicIndex].adminComments) {
-      const commentIndex = musicData[musicIndex].adminComments!.findIndex(
+    if (assetData[assetIndex].adminComments) {
+      const commentIndex = assetData[assetIndex].adminComments!.findIndex(
         (c) => c.id === commentId
       )
       if (commentIndex !== -1) {
-        musicData[musicIndex].adminComments![commentIndex].read = true
+        assetData[assetIndex].adminComments![commentIndex].read = true
       }
     }
 
-    await writeMusicData(musicData)
+    await writeAssetData(assetData)
 
     return NextResponse.json({
       success: true,
