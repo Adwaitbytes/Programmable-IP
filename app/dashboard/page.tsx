@@ -6,27 +6,39 @@ import Navigation from '../components/Navigation'
 import Link from 'next/link'
 import { useWalletConnection } from '../lib/useWalletConnection'
 
-interface MusicStats {
-  totalUploads: number
-  totalViews: number
-  totalEarnings: number
-  recentUploads: Array<{
-    id: string
-    title: string
-    artist: string
-    createdAt: string
-    ipId: string
-    views: number
-    hidden?: boolean
-  }>
+type AssetType = 'music' | 'character' | 'story' | 'image' | 'concept' | 'other'
+
+interface AssetData {
+  id: string
+  type: AssetType
+  title: string
+  artist: string
+  description: string
+  price: string
+  mediaUrl: string
+  coverUrl: string
+  owner: string
+  metadataUrl: string
+  createdAt: string
+  ipId?: string
+  txHash?: string
+  hidden?: boolean
+  views?: number // Assuming views might be tracked in the future
+}
+
+interface UserStats {
+  totalAssets: number
+  totalEarnings: number // Placeholder for now
+  assetBreakdown: Record<AssetType, number>
+  recentUploads: AssetData[]
 }
 
 export default function DashboardPage() {
   const { address, isConnected, connectWallet } = useWalletConnection()
-  const [stats, setStats] = useState<MusicStats>({
-    totalUploads: 0,
-    totalViews: 0,
+  const [stats, setStats] = useState<UserStats>({
+    totalAssets: 0,
     totalEarnings: 0,
+    assetBreakdown: { music: 0, character: 0, story: 0, image: 0, concept: 0, other: 0 },
     recentUploads: []
   })
   const [loading, setLoading] = useState(true)
@@ -46,41 +58,36 @@ export default function DashboardPage() {
 
   const loadUserStats = async (userAddress: string) => {
     try {
-      const response = await fetch('/api/get-music')
+      const response = await fetch('/api/get-assets')
       const data = await response.json()
 
       if (data.success) {
-        const userMusic = data.music.filter((item: any) =>
+        const userAssets = (data.assets || []).filter((item: AssetData) =>
           item.owner.toLowerCase() === userAddress.toLowerCase()
         )
 
         // Calculate stats
-        const totalUploads = userMusic.length
-        const totalViews = userMusic.reduce((sum: number, item: any) => sum + (item.views || 0), 0)
-        const totalEarnings = userMusic.reduce((sum: number, item: any) =>
+        const totalAssets = userAssets.length
+        const totalEarnings = userAssets.reduce((sum: number, item: AssetData) =>
           sum + (parseFloat(item.price) || 0), 0
         )
 
+        const assetBreakdown = userAssets.reduce((acc: Record<string, number>, item: AssetData) => {
+          acc[item.type] = (acc[item.type] || 0) + 1
+          return acc
+        }, { music: 0, character: 0, story: 0, image: 0, concept: 0, other: 0 })
+
         // Get recent uploads
-        const recentUploads = userMusic
-          .sort((a: any, b: any) =>
+        const recentUploads = userAssets
+          .sort((a: AssetData, b: AssetData) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           )
           .slice(0, 5)
-          .map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            artist: item.artist,
-            createdAt: item.createdAt,
-            ipId: item.ipId,
-            views: item.views || 0,
-            hidden: item.hidden || false
-          }))
 
         setStats({
-          totalUploads,
-          totalViews,
+          totalAssets,
           totalEarnings,
+          assetBreakdown,
           recentUploads
         })
       }
@@ -96,7 +103,7 @@ export default function DashboardPage() {
 
     setDeleting(id)
     try {
-      const res = await fetch(`/api/delete-music?id=${id}&owner=${account}`, {
+      const res = await fetch(`/api/delete-music?id=${id}&owner=${account}`, { // Note: Should ideally be delete-asset
         method: 'DELETE',
       })
       const data = await res.json()
@@ -109,7 +116,7 @@ export default function DashboardPage() {
         alert(`❌ Failed to delete: ${data.error}`)
       }
     } catch (error) {
-      alert(`❌ Error deleting music: ${error}`)
+      alert(`❌ Error deleting asset: ${error}`)
     } finally {
       setDeleting(null)
     }
@@ -177,7 +184,7 @@ export default function DashboardPage() {
                 Connect Your Wallet
               </h1>
               <p className="text-story-text-secondary text-lg mb-8 max-w-md mx-auto">
-                Connect your wallet to access your dashboard, view stats, and manage your music IP assets.
+                Connect your wallet to access your dashboard, view stats, and manage your IP assets.
               </p>
               <button
                 onClick={connectWallet}
@@ -215,7 +222,7 @@ export default function DashboardPage() {
                   Dashboard
                 </h1>
                 <p className="text-story-text-secondary">
-                  Manage your music IP assets and view performance stats
+                  Manage your IP assets and view performance stats
                 </p>
               </div>
               <Link
@@ -225,7 +232,7 @@ export default function DashboardPage() {
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Upload New Music
+                Register New IP
               </Link>
             </div>
 
@@ -238,10 +245,10 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <h3 className="text-story-text-secondary font-medium mb-2">
-                  Total Uploads
+                  Total Assets
                 </h3>
                 <p className="text-4xl font-bold text-white">
-                  {stats.totalUploads}
+                  {stats.totalAssets}
                 </p>
               </div>
 
@@ -253,11 +260,19 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <h3 className="text-story-text-secondary font-medium mb-2">
-                  Total Views
+                  Asset Types
                 </h3>
-                <p className="text-4xl font-bold text-white">
-                  {stats.totalViews}
-                </p>
+                <div className="flex gap-3 mt-2">
+                  {Object.entries(stats.assetBreakdown).map(([type, count]) => (
+                    count > 0 && (
+                      <div key={type} className="flex flex-col items-center">
+                        <span className="text-xs text-gray-400 capitalize">{type}</span>
+                        <span className="text-lg font-bold text-white">{count}</span>
+                      </div>
+                    )
+                  ))}
+                  {stats.totalAssets === 0 && <span className="text-gray-500">None</span>}
+                </div>
               </div>
 
               <div className="glass-panel rounded-2xl p-6 relative overflow-hidden group">
@@ -267,7 +282,7 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <h3 className="text-story-text-secondary font-medium mb-2">
-                  Total Earnings
+                  Total Value
                 </h3>
                 <p className="text-4xl font-bold text-white">
                   {stats.totalEarnings} <span className="text-lg text-story-text-secondary font-normal">IP</span>
@@ -286,10 +301,10 @@ export default function DashboardPage() {
               {stats.recentUploads.length === 0 ? (
                 <div className="p-12 text-center">
                   <p className="text-story-text-secondary text-lg mb-6">
-                    No music uploaded yet
+                    No assets registered yet
                   </p>
                   <Link href="/upload" className="btn-secondary">
-                    Upload Your First Track
+                    Register Your First Asset
                   </Link>
                 </div>
               ) : (
@@ -298,19 +313,16 @@ export default function DashboardPage() {
                     <thead>
                       <tr className="bg-white/5">
                         <th className="px-6 py-4 text-left text-xs font-medium text-story-text-secondary uppercase tracking-wider">
-                          Title
+                          Asset
                         </th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-story-text-secondary uppercase tracking-wider">
-                          Artist
+                          Type
                         </th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-story-text-secondary uppercase tracking-wider">
                           Date
                         </th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-story-text-secondary uppercase tracking-wider">
                           Status
-                        </th>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-story-text-secondary uppercase tracking-wider">
-                          Views
                         </th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-story-text-secondary uppercase tracking-wider">
                           Actions
@@ -320,11 +332,28 @@ export default function DashboardPage() {
                     <tbody className="divide-y divide-white/5">
                       {stats.recentUploads.map((upload) => (
                         <tr key={upload.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                            {upload.title}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 flex-shrink-0 rounded-lg overflow-hidden bg-black/20">
+                                <img
+                                  className="h-10 w-10 object-cover"
+                                  src={upload.coverUrl || upload.mediaUrl}
+                                  alt=""
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x400?text=Asset'
+                                  }}
+                                />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-white">{upload.title}</div>
+                                <div className="text-sm text-story-text-secondary">{upload.artist}</div>
+                              </div>
+                            </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-story-text-secondary">
-                            {upload.artist}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 capitalize">
+                              {upload.type}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-story-text-secondary">
                             {new Date(upload.createdAt).toLocaleDateString()}
@@ -339,9 +368,6 @@ export default function DashboardPage() {
                                 👁️ Visible
                               </span>
                             )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-story-text-secondary">
-                            {upload.views}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                             <a
@@ -387,10 +413,10 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white">
-                      AI Music Assistant
+                      AI Creative Assistant
                     </h3>
                     <p className="text-sm text-story-text-secondary">
-                      Generate lyrics and artwork
+                      Generate ideas, stories, and art
                     </p>
                   </div>
                 </div>
@@ -405,14 +431,14 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center gap-4 mb-4">
                   <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <span className="text-2xl">🎵</span>
+                    <span className="text-2xl">🌐</span>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white">
-                      Explore Music
+                      Explore IP Universe
                     </h3>
                     <p className="text-sm text-story-text-secondary">
-                      Discover new tracks
+                      Discover new creative works
                     </p>
                   </div>
                 </div>

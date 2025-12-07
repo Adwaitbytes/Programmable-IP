@@ -7,14 +7,17 @@ import MusicPlayer from './components/MusicPlayer'
 import { useWalletConnection } from './lib/useWalletConnection'
 
 // Types
-interface MusicNFT {
+type AssetType = 'music' | 'character' | 'story' | 'image' | 'concept' | 'other'
+
+interface AssetData {
   id: string
+  type: AssetType
   title: string
   artist: string
   description: string
   price: string
-  audioUrl: string
-  imageUrl: string
+  mediaUrl: string
+  coverUrl: string
   owner: string
   metadataUrl: string
   createdAt: string
@@ -28,8 +31,8 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false)
   const [message, setMessage] = useState<string>('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
-  const [myMusicNFTs, setMyMusicNFTs] = useState<MusicNFT[]>([])
-  const [selectedTrack, setSelectedTrack] = useState<MusicNFT | null>(null)
+  const [myAssets, setMyAssets] = useState<AssetData[]>([])
+  const [selectedTrack, setSelectedTrack] = useState<AssetData | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
 
@@ -37,24 +40,24 @@ export default function Home() {
   const account = address || ''
   const connected = isConnected
 
-  // Load user's music NFTs only
-  const loadMyMusicNFTs = async (userAddress: string) => {
+  // Load user's assets only
+  const loadMyAssets = async (userAddress: string) => {
     try {
-      console.log('📂 Loading my music NFTs for:', userAddress)
-      const response = await fetch('/api/get-music')
+      console.log('📂 Loading my assets for:', userAddress)
+      const response = await fetch('/api/get-assets')
       const data = await response.json()
-      console.log('📋 All music NFTs loaded:', data)
+      console.log('📋 All assets loaded:', data)
 
       if (data.success) {
-        // Filter only music owned by the connected user
-        const myMusic = (data.music || []).filter(
-          (nft: MusicNFT) => nft.owner.toLowerCase() === userAddress.toLowerCase()
+        // Filter only assets owned by the connected user
+        const myData = (data.assets || []).filter(
+          (asset: AssetData) => asset.owner.toLowerCase() === userAddress.toLowerCase()
         )
-        console.log('🎵 My music:', myMusic)
-        setMyMusicNFTs(myMusic)
+        console.log('🎵 My assets:', myData)
+        setMyAssets(myData)
       }
     } catch (error) {
-      console.error('💥 Error loading music NFTs:', error)
+      console.error('💥 Error loading assets:', error)
     }
   }
 
@@ -65,28 +68,28 @@ export default function Home() {
   }
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"? This will remove it from everywhere (home + explore). This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete "${title}"? This will remove it from everywhere. This action cannot be undone.`)) {
       return
     }
 
     setDeleting(id)
     try {
-      const res = await fetch(`/api/delete-music?id=${id}&owner=${account}`, {
+      const res = await fetch(`/api/delete-music?id=${id}&owner=${account}`, { // Note: We might need to update delete API too
         method: 'DELETE',
       })
       const data = await res.json()
 
       if (data.success) {
         showMessage(`✅ Successfully deleted "${title}"`, 'success')
-        // Refresh the music list
+        // Refresh the list
         if (account) {
-          await loadMyMusicNFTs(account)
+          await loadMyAssets(account)
         }
       } else {
         showMessage(`❌ Failed to delete: ${data.error}`, 'error')
       }
     } catch (error) {
-      showMessage(`❌ Error deleting music: ${error}`, 'error')
+      showMessage(`❌ Error deleting asset: ${error}`, 'error')
     } finally {
       setDeleting(null)
     }
@@ -110,9 +113,9 @@ export default function Home() {
           `✅ ${data.hidden ? 'Hidden from explore page' : 'Now visible on explore page'}: "${title}"`,
           'success'
         )
-        // Refresh the music list
+        // Refresh the list
         if (account) {
-          await loadMyMusicNFTs(account)
+          await loadMyAssets(account)
         }
       } else {
         showMessage(`❌ Failed to ${action}: ${data.error}`, 'error')
@@ -124,12 +127,12 @@ export default function Home() {
     }
   }
 
-  // Load music when account changes
+  // Load assets when account changes
   useEffect(() => {
     if (connected && account) {
-      loadMyMusicNFTs(account)
+      loadMyAssets(account)
     } else {
-      setMyMusicNFTs([])
+      setMyAssets([])
     }
   }, [connected, account])
 
@@ -152,18 +155,18 @@ export default function Home() {
             transition={{ duration: 1, ease: "easeOut" }}
           >
             <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
-              <span className="text-sm font-medium text-blue-400">Next Generation Music IP</span>
+              <span className="text-sm font-medium text-blue-400">Next Generation IP Protocol</span>
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 text-white text-glow">
               The Future of <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
-                Music Ownership
+                Creative Ownership
               </span>
             </h1>
 
             <p className="text-xl text-story-text-secondary max-w-2xl mx-auto mb-12 leading-relaxed">
-              Upload, discover, and monetize your music with AI-powered features and blockchain technology.
+              Register, discover, and monetize your creative works. From music and stories to characters and art.
               Built on Story Protocol.
             </p>
 
@@ -184,7 +187,7 @@ export default function Home() {
                   onClick={() => window.location.href = '/upload'}
                   className="btn-primary min-w-[200px]"
                 >
-                  Upload Music
+                  Register IP
                 </motion.button>
               )}
               <motion.button
@@ -200,7 +203,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* My Music Section */}
+      {/* My Assets Section */}
       <section className="relative py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -209,9 +212,9 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <div className="flex items-center justify-between mb-12">
-              <h2 className="text-3xl font-bold text-white">My Collection</h2>
-              {connected && myMusicNFTs.length > 0 && (
-                <span className="text-story-text-secondary">{myMusicNFTs.length} Tracks</span>
+              <h2 className="text-3xl font-bold text-white">My Portfolio</h2>
+              {connected && myAssets.length > 0 && (
+                <span className="text-story-text-secondary">{myAssets.length} Assets</span>
               )}
             </div>
 
@@ -224,26 +227,26 @@ export default function Home() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-4">Connect Your Wallet</h3>
                 <p className="text-story-text-secondary mb-8">
-                  Connect your wallet to view and manage your uploaded music.
+                  Connect your wallet to view and manage your registered IP assets.
                 </p>
                 <button onClick={connectWallet} className="btn-primary">
                   Connect Wallet
                 </button>
               </div>
-            ) : myMusicNFTs.length === 0 ? (
+            ) : myAssets.length === 0 ? (
               <div className="glass-panel rounded-3xl p-16 text-center max-w-2xl mx-auto">
                 <div className="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-8">
                   <svg className="w-10 h-10 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-4">Start Your Journey</h3>
                 <p className="text-story-text-secondary mb-8">
-                  You haven't uploaded any music yet. Create your first IP asset on Story Protocol.
+                  You haven't registered any IP assets yet. Create your first IP asset on Story Protocol.
                 </p>
                 <div className="flex gap-4 justify-center">
                   <button onClick={() => window.location.href = '/upload'} className="btn-primary">
-                    Upload Track
+                    Register IP
                   </button>
                   <button onClick={() => window.location.href = '/explore'} className="btn-secondary">
                     Explore
@@ -252,12 +255,15 @@ export default function Home() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {myMusicNFTs.map((nft) => (
+                {myAssets.map((asset) => (
                   <motion.div
-                    key={nft.id}
+                    key={asset.id}
                     whileHover={{ y: -8 }}
                     className="card group cursor-pointer relative overflow-hidden"
-                    onClick={() => setSelectedTrack(nft)}
+                    onClick={() => {
+                      if (asset.type === 'music') setSelectedTrack(asset)
+                      else window.open(asset.mediaUrl, '_blank')
+                    }}
                   >
                     {/* Hover Glow */}
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -267,14 +273,14 @@ export default function Home() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleToggleHide(nft.id, nft.title, nft.hidden || false)
+                          handleToggleHide(asset.id, asset.title, asset.hidden || false)
                         }}
-                        disabled={toggling === nft.id}
+                        disabled={toggling === asset.id}
                         className="p-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-white/20 transition-colors"
                       >
-                        {toggling === nft.id ? (
+                        {toggling === asset.id ? (
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : nft.hidden ? (
+                        ) : asset.hidden ? (
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -288,12 +294,12 @@ export default function Home() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDelete(nft.id, nft.title)
+                          handleDelete(asset.id, asset.title)
                         }}
-                        disabled={deleting === nft.id}
+                        disabled={deleting === asset.id}
                         className="p-2 rounded-full bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-400 hover:bg-red-500/40 transition-colors"
                       >
-                        {deleting === nft.id ? (
+                        {deleting === asset.id ? (
                           <div className="w-5 h-5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
                         ) : (
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -303,45 +309,54 @@ export default function Home() {
                       </button>
                     </div>
 
-                    <div className="relative aspect-square rounded-xl overflow-hidden mb-5">
+                    <div className="relative aspect-square rounded-xl overflow-hidden mb-5 bg-black/40">
                       <img
-                        src={nft.imageUrl}
-                        alt={nft.title}
+                        src={asset.coverUrl || asset.mediaUrl}
+                        alt={asset.title}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x400?text=Asset'
+                        }}
                       />
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300" />
+
+                      {/* Type Badge */}
+                      <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium text-white border border-white/10 flex items-center gap-1">
+                        <span className="capitalize">{asset.type}</span>
+                      </div>
 
                       {/* Play Icon Overlay */}
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                          <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
+                          {asset.type === 'music' ? (
+                            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                          ) : (
+                            <span className="text-xl">👁️</span>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <h3 className="font-bold text-lg text-white line-clamp-1 group-hover:text-blue-400 transition-colors">
-                        {nft.title}
+                        {asset.title}
                       </h3>
                       <p className="text-sm text-story-text-secondary">
-                        by {nft.artist}
+                        by {asset.artist}
                       </p>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-4">
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-4" onClick={(e) => e.stopPropagation()}>
                         <span className="text-blue-400 font-medium">
-                          {nft.price && nft.price !== '0' ? `${nft.price} IP` : 'Free'}
+                          {asset.price && asset.price !== '0' ? `${asset.price} IP` : 'Free'}
                         </span>
-                        {nft.ipId && (
+                        {asset.ipId && (
                           <a
-                            href={`https://aeneid.explorer.story.foundation/ipa/${nft.ipId}`}
+                            href={`https://aeneid.explorer.story.foundation/ipa/${asset.ipId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-story-text-secondary hover:text-white transition-colors"
-                            onClick={(e) => e.stopPropagation()}
+                            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors border border-white/10"
                           >
-                            View IP Asset ↗
+                            View IP ↗
                           </a>
                         )}
                       </div>
@@ -356,7 +371,7 @@ export default function Home() {
 
       {/* Music Player Modal */}
       <AnimatePresence>
-        {selectedTrack && (
+        {selectedTrack && selectedTrack.type === 'music' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -372,10 +387,10 @@ export default function Home() {
               onClick={e => e.stopPropagation()}
             >
               <MusicPlayer
-                audioUrl={selectedTrack.audioUrl}
+                audioUrl={selectedTrack.mediaUrl}
                 title={selectedTrack.title}
                 artist={selectedTrack.artist}
-                imageUrl={selectedTrack.imageUrl}
+                imageUrl={selectedTrack.coverUrl}
               />
             </motion.div>
           </motion.div>

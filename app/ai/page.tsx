@@ -5,81 +5,87 @@ import { motion } from 'framer-motion'
 import Navigation from '../components/Navigation'
 import Image from 'next/image'
 
+type GenerationType = 'lyrics' | 'image' | 'story' | 'character'
+
+const GENERATION_OPTIONS: { id: GenerationType; label: string; icon: string; description: string }[] = [
+  { id: 'lyrics', label: 'Song Lyrics', icon: '🎵', description: 'Generate lyrics for your next hit' },
+  { id: 'image', label: 'Visual Art', icon: '🎨', description: 'Create album art or character designs' },
+  { id: 'story', label: 'Story Outline', icon: '📚', description: 'Plot outlines and narrative arcs' },
+  { id: 'character', label: 'Character Profile', icon: '🦸', description: 'Detailed character backstories and traits' },
+]
+
 export default function AIPage() {
-  const [title, setTitle] = useState('')
-  const [artist, setArtist] = useState('')
-  const [lyrics, setLyrics] = useState('')
-  const [imagePrompt, setImagePrompt] = useState('')
+  const [selectedType, setSelectedType] = useState<GenerationType>('lyrics')
+  const [prompt, setPrompt] = useState('')
+  const [generatedContent, setGeneratedContent] = useState('')
   const [generatedImage, setGeneratedImage] = useState('')
-  const [loading, setLoading] = useState<'lyrics' | 'image' | null>(null)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [copySuccess, setCopySuccess] = useState(false)
 
-  const generateContent = async (type: 'lyrics' | 'image') => {
-    if (!title || !artist) {
-      setError('Please enter both title and artist')
+  const generateContent = async () => {
+    if (!prompt) {
+      setError('Please enter a prompt')
       return
     }
 
-    setLoading(type)
+    setLoading(true)
     setError('')
+    setGeneratedContent('')
+    setGeneratedImage('')
 
     try {
-      const prompt = type === 'lyrics'
-        ? `Generate lyrics for a song titled "${title}" by ${artist}`
-        : `Generate a detailed prompt for creating an album cover artwork for a song titled "${title}" by ${artist}. The prompt should be descriptive and suitable for image generation.`
+      // Construct a specific prompt based on type
+      let systemPrompt = ''
+      if (selectedType === 'lyrics') systemPrompt = `Generate song lyrics based on this idea: "${prompt}"`
+      else if (selectedType === 'story') systemPrompt = `Write a creative story outline or synopsis based on: "${prompt}"`
+      else if (selectedType === 'character') systemPrompt = `Create a detailed character profile (name, age, backstory, traits) based on: "${prompt}"`
+      else if (selectedType === 'image') systemPrompt = `Generate a detailed image generation prompt for: "${prompt}"`
 
       const response = await fetch('/api/perplexity', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ type, prompt })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: selectedType === 'image' ? 'image_prompt' : 'text', prompt: systemPrompt })
       })
 
       const data = await response.json()
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to generate content')
-      }
+      if (!data.success) throw new Error(data.error || 'Failed to generate content')
 
-      if (type === 'lyrics') {
-        setLyrics(data.content)
-      } else {
-        setImagePrompt(data.content)
-        // Generate image using the prompt
+      if (selectedType === 'image') {
+        // If it was an image request, we first got a refined prompt, now generate the actual image
         const imageResponse = await fetch('/api/perplexity', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'image_generation',
             prompt: data.content
           })
         })
-
         const imageData = await imageResponse.json()
         if (imageData.success) {
           setGeneratedImage(imageData.imageUrl)
+          setGeneratedContent(data.content)
         } else {
           throw new Error('Failed to generate image')
         }
+      } else {
+        setGeneratedContent(data.content)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate content')
     } finally {
-      setLoading(null)
+      setLoading(false)
     }
   }
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(lyrics)
+      await navigator.clipboard.writeText(generatedContent)
       setCopySuccess(true)
       setTimeout(() => setCopySuccess(false), 2000)
     } catch (err) {
-      setError('Failed to copy lyrics')
+      setError('Failed to copy content')
     }
   }
 
@@ -87,7 +93,7 @@ export default function AIPage() {
     if (generatedImage) {
       const link = document.createElement('a')
       link.href = generatedImage
-      link.download = `${title}-${artist}-album-art.png`
+      link.download = `generated-art-${Date.now()}.png`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -113,71 +119,61 @@ export default function AIPage() {
           >
             <div className="text-center mb-12">
               <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white text-glow">
-                AI Music Assistant
+                AI Creative Assistant
               </h1>
               <p className="text-story-text-secondary text-lg">
-                Generate lyrics and album artwork for your music using AI
+                Supercharge your creativity with AI. Generate lyrics, stories, characters, and art.
               </p>
             </div>
 
             <div className="glass-panel rounded-3xl p-8 shadow-2xl space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300 ml-1">
-                    Song Title
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-                    placeholder="Enter song title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300 ml-1">
-                    Artist Name
-                  </label>
-                  <input
-                    type="text"
-                    value={artist}
-                    onChange={(e) => setArtist(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-                    placeholder="Enter artist name"
-                  />
-                </div>
+              {/* Type Selection */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {GENERATION_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setSelectedType(option.id)}
+                    className={`p-4 rounded-xl border transition-all duration-300 text-left flex flex-col items-center text-center gap-2 ${selectedType === option.id
+                        ? 'bg-blue-500/20 border-blue-500/50 text-white shadow-lg shadow-blue-500/10'
+                        : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                      }`}
+                  >
+                    <span className="text-2xl">{option.icon}</span>
+                    <span className="font-medium text-sm">{option.label}</span>
+                  </button>
+                ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => generateContent('lyrics')}
-                  disabled={loading === 'lyrics'}
-                  className="btn-primary flex-1 py-4 text-lg font-medium shadow-lg shadow-blue-500/20"
-                >
-                  {loading === 'lyrics' ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Generating Lyrics...
-                    </span>
-                  ) : (
-                    '✨ Generate Lyrics'
-                  )}
-                </button>
-                <button
-                  onClick={() => generateContent('image')}
-                  disabled={loading === 'image'}
-                  className="btn-secondary flex-1 py-4 text-lg font-medium"
-                >
-                  {loading === 'image' ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Generating Artwork...
-                    </span>
-                  ) : (
-                    '🎨 Generate Artwork'
-                  )}
-                </button>
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-300 ml-1">
+                  {selectedType === 'lyrics' ? 'What is the song about?' :
+                    selectedType === 'story' ? 'What is the story idea?' :
+                      selectedType === 'character' ? 'Describe the character concept' :
+                        'Describe the image you want to create'}
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all resize-none"
+                  placeholder="Enter your prompt here..."
+                />
               </div>
+
+              <button
+                onClick={generateContent}
+                disabled={loading}
+                className="btn-primary w-full py-4 text-lg font-medium shadow-lg shadow-blue-500/20"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Generating...
+                  </span>
+                ) : (
+                  '✨ Generate'
+                )}
+              </button>
 
               {error && (
                 <motion.div
@@ -192,83 +188,49 @@ export default function AIPage() {
                 </motion.div>
               )}
 
-              {lyrics && (
+              {/* Results Display */}
+              {(generatedContent || generatedImage) && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-black/20 rounded-xl p-6 border border-white/5"
+                  className="bg-black/20 rounded-xl p-6 border border-white/5 space-y-6"
                 >
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-white">Generated Lyrics</h3>
-                    <div className="flex items-center space-x-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-white">Generated Result</h3>
+                    {generatedContent && !generatedImage && (
                       <button
                         onClick={copyToClipboard}
                         className="text-sm text-blue-400 hover:text-blue-300 flex items-center transition-colors"
                       >
-                        {copySuccess ? (
-                          <>
-                            <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                            </svg>
-                            Copy Lyrics
-                          </>
-                        )}
+                        {copySuccess ? 'Copied!' : 'Copy Text'}
                       </button>
-                      <a
-                        href="https://suno.com/create"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-green-400 hover:text-green-300 flex items-center transition-colors"
-                      >
-                        <svg className="w-5 h-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                        </svg>
-                        Create with Suno AI
-                      </a>
-                    </div>
-                  </div>
-                  <pre className="whitespace-pre-wrap text-story-text-secondary font-mono text-sm leading-relaxed">
-                    {lyrics}
-                  </pre>
-                </motion.div>
-              )}
-
-              {imagePrompt && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
-                >
-                  <div className="bg-black/20 rounded-xl p-6 border border-white/5">
-                    <h3 className="text-xl font-bold text-white mb-4">Image Generation Prompt</h3>
-                    <p className="text-story-text-secondary leading-relaxed">{imagePrompt}</p>
+                    )}
                   </div>
 
-                  {generatedImage && (
-                    <div className="bg-black/20 rounded-xl p-6 border border-white/5">
-                      <h3 className="text-xl font-bold text-white mb-6">Generated Album Artwork</h3>
-                      <div className="relative aspect-square max-w-md mx-auto mb-6 rounded-xl overflow-hidden shadow-2xl border border-white/10">
+                  {generatedImage ? (
+                    <div className="space-y-4">
+                      <div className="relative aspect-square max-w-md mx-auto rounded-xl overflow-hidden shadow-2xl border border-white/10">
                         <Image
                           src={generatedImage}
-                          alt="Generated album artwork"
+                          alt="Generated artwork"
                           fill
                           className="object-cover"
                         />
                       </div>
+                      <p className="text-sm text-story-text-secondary italic text-center">
+                        Prompt: {generatedContent}
+                      </p>
                       <button
                         onClick={downloadImage}
-                        className="btn-primary w-full py-3"
+                        className="btn-secondary w-full py-3"
                       >
                         Download Image
                       </button>
                     </div>
+                  ) : (
+                    <pre className="whitespace-pre-wrap text-story-text-secondary font-mono text-sm leading-relaxed">
+                      {generatedContent}
+                    </pre>
                   )}
                 </motion.div>
               )}
