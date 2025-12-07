@@ -354,7 +354,10 @@ export default function Home() {
                             href={`https://aeneid.explorer.story.foundation/ipa/${asset.ipId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors border border-white/10"
+                            className="relative z-20 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors border border-white/10 pointer-events-auto cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                            }}
                           >
                             View IP ↗
                           </a>
