@@ -1,241 +1,500 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Navigation from '../components/Navigation'
 import Image from 'next/image'
+import { useWalletConnection } from '../lib/useWalletConnection'
 
-type GenerationType = 'lyrics' | 'image' | 'story' | 'character'
+type GenerationType = 'lyrics' | 'character' | 'story' | 'concept'
 
-const GENERATION_OPTIONS: { id: GenerationType; label: string; icon: string; description: string }[] = [
-  { id: 'lyrics', label: 'Song Lyrics', icon: '🎵', description: 'Generate lyrics for your next hit' },
-  { id: 'image', label: 'Visual Art', icon: '🎨', description: 'Create album art or character designs' },
-  { id: 'story', label: 'Story Outline', icon: '📚', description: 'Plot outlines and narrative arcs' },
-  { id: 'character', label: 'Character Profile', icon: '🦸', description: 'Detailed character backstories and traits' },
+interface GenerationOption {
+  id: GenerationType
+  label: string
+  icon: string
+  description: string
+  gradient: string
+  placeholder: string
+}
+
+const GENERATION_OPTIONS: GenerationOption[] = [
+  {
+    id: 'lyrics',
+    label: 'Song Lyrics',
+    icon: '🎵',
+    description: 'Generate original lyrics for your music',
+    gradient: 'from-purple-500 to-pink-500',
+    placeholder: 'Write a love song about a summer night in Tokyo...'
+  },
+  {
+    id: 'character',
+    label: 'Character',
+    icon: '🦸',
+    description: 'Create unique character profiles',
+    gradient: 'from-blue-500 to-cyan-500',
+    placeholder: 'A cyberpunk hacker with mysterious past...'
+  },
+  {
+    id: 'story',
+    label: 'Story',
+    icon: '📚',
+    description: 'Generate story outlines and plots',
+    gradient: 'from-green-500 to-emerald-500',
+    placeholder: 'A sci-fi adventure on Mars in 2150...'
+  },
+  {
+    id: 'concept',
+    label: 'Concept',
+    icon: '💡',
+    description: 'Brainstorm creative ideas',
+    gradient: 'from-amber-500 to-orange-500',
+    placeholder: 'A game mechanic that combines music and puzzles...'
+  },
 ]
 
-export default function AIPage() {
+interface GeneratedContent {
+  type: GenerationType
+  prompt: string
+  content: string
+  timestamp: Date
+  registered: boolean
+  ipId?: string
+}
+
+export default function AIStudioPage() {
+  const { address, isConnected, connectWallet } = useWalletConnection()
   const [selectedType, setSelectedType] = useState<GenerationType>('lyrics')
   const [prompt, setPrompt] = useState('')
-  const [generatedContent, setGeneratedContent] = useState('')
-  const [generatedImage, setGeneratedImage] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [registering, setRegistering] = useState(false)
   const [error, setError] = useState('')
-  const [copySuccess, setCopySuccess] = useState(false)
+  const [history, setHistory] = useState<GeneratedContent[]>([])
+  const [currentGeneration, setCurrentGeneration] = useState<GeneratedContent | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
+
+  const selectedOption = GENERATION_OPTIONS.find(o => o.id === selectedType)!
 
   const generateContent = async () => {
-    if (!prompt) {
+    if (!prompt.trim()) {
       setError('Please enter a prompt')
       return
     }
 
-    setLoading(true)
+    setGenerating(true)
     setError('')
-    setGeneratedContent('')
-    setGeneratedImage('')
+    setCurrentGeneration(null)
 
     try {
-      // Construct a specific prompt based on type
+      // Construct the system prompt based on type
       let systemPrompt = ''
-      if (selectedType === 'lyrics') systemPrompt = `Generate song lyrics based on this idea: "${prompt}"`
-      else if (selectedType === 'story') systemPrompt = `Write a creative story outline or synopsis based on: "${prompt}"`
-      else if (selectedType === 'character') systemPrompt = `Create a detailed character profile (name, age, backstory, traits) based on: "${prompt}"`
-      else if (selectedType === 'image') systemPrompt = `Generate a detailed image generation prompt for: "${prompt}"`
+      switch (selectedType) {
+        case 'lyrics':
+          systemPrompt = `Generate original song lyrics based on this idea. Include verse, chorus, and bridge structure:\n\n"${prompt}"`
+          break
+        case 'character':
+          systemPrompt = `Create a detailed character profile including name, age, appearance, personality, backstory, and special abilities:\n\n"${prompt}"`
+          break
+        case 'story':
+          systemPrompt = `Write a creative story outline with setting, characters, plot points, and ending:\n\n"${prompt}"`
+          break
+        case 'concept':
+          systemPrompt = `Develop this creative concept with detailed description, key features, and potential applications:\n\n"${prompt}"`
+          break
+      }
 
       const response = await fetch('/api/perplexity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: selectedType === 'image' ? 'image_prompt' : 'text', prompt: systemPrompt })
+        body: JSON.stringify({ type: 'text', prompt: systemPrompt }),
       })
 
       const data = await response.json()
 
-      if (!data.success) throw new Error(data.error || 'Failed to generate content')
-
-      if (selectedType === 'image') {
-        // If it was an image request, we first got a refined prompt, now generate the actual image
-        const imageResponse = await fetch('/api/perplexity', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'image_generation',
-            prompt: data.content
-          })
-        })
-        const imageData = await imageResponse.json()
-        if (imageData.success) {
-          setGeneratedImage(imageData.imageUrl)
-          setGeneratedContent(data.content)
-        } else {
-          throw new Error('Failed to generate image')
-        }
-      } else {
-        setGeneratedContent(data.content)
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate content')
       }
+
+      const newGeneration: GeneratedContent = {
+        type: selectedType,
+        prompt,
+        content: data.content,
+        timestamp: new Date(),
+        registered: false,
+      }
+
+      setCurrentGeneration(newGeneration)
+      setHistory(prev => [newGeneration, ...prev])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate content')
     } finally {
-      setLoading(false)
+      setGenerating(false)
     }
   }
 
-  const copyToClipboard = async () => {
+  const registerAsIP = async () => {
+    if (!currentGeneration || !isConnected) return
+
+    setRegistering(true)
+    setError('')
+
     try {
-      await navigator.clipboard.writeText(generatedContent)
-      setCopySuccess(true)
-      setTimeout(() => setCopySuccess(false), 2000)
+      // Create metadata for the IP
+      const typeLabel = GENERATION_OPTIONS.find(o => o.id === currentGeneration.type)?.label || 'Content'
+      const title = `AI ${typeLabel}: ${currentGeneration.prompt.slice(0, 50)}${currentGeneration.prompt.length > 50 ? '...' : ''}`
+
+      // Upload as asset
+      const formData = new FormData()
+
+      // Create a text file blob for the content
+      const contentBlob = new Blob([currentGeneration.content], { type: 'text/plain' })
+      const contentFile = new File([contentBlob], `${currentGeneration.type}-${Date.now()}.txt`, { type: 'text/plain' })
+
+      formData.append('file', contentFile)
+      formData.append('title', title)
+      formData.append('artist', address || 'Unknown')
+      formData.append('description', `AI-generated ${currentGeneration.type} based on: "${currentGeneration.prompt}"`)
+      formData.append('price', '0')
+      formData.append('owner', address || '')
+      formData.append('type', currentGeneration.type)
+
+      const response = await fetch('/api/upload-asset', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Update the current generation with IP info
+        const updatedGeneration = {
+          ...currentGeneration,
+          registered: true,
+          ipId: data.ipId,
+        }
+        setCurrentGeneration(updatedGeneration)
+
+        // Update history
+        setHistory(prev => prev.map(h =>
+          h.timestamp === currentGeneration.timestamp ? updatedGeneration : h
+        ))
+      } else {
+        throw new Error(data.error || 'Failed to register IP')
+      }
     } catch (err) {
-      setError('Failed to copy content')
+      setError(err instanceof Error ? err.message : 'Failed to register as IP')
+    } finally {
+      setRegistering(false)
     }
   }
 
-  const downloadImage = () => {
-    if (generatedImage) {
-      const link = document.createElement('a')
-      link.href = generatedImage
-      link.download = `generated-art-${Date.now()}.png`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      console.error('Failed to copy:', err)
     }
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-story-dark selection:bg-blue-500/30">
+    <div className="min-h-screen relative overflow-hidden bg-[#030712]">
+      {/* Animated Background */}
+      <div className="bg-animated-gradient">
+        <div className="bg-orb bg-orb-1" />
+        <div className="bg-orb bg-orb-2" />
+        <div className="bg-orb bg-orb-3" />
+      </div>
+      <div className="bg-grid" />
+
       <Navigation />
 
-      {/* Background Glow Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[100px] opacity-30 mix-blend-screen" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[100px] opacity-30 mix-blend-screen" />
-      </div>
-
-      <main className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+      <main className="relative pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
+            className="text-center mb-12"
           >
-            <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white text-glow">
-                AI Creative Assistant
-              </h1>
-              <p className="text-story-text-secondary text-lg">
-                Supercharge your creativity with AI. Generate lyrics, stories, characters, and art.
-              </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 mb-6">
+              <span className="text-xl">🤖</span>
+              <span className="text-sm font-medium text-purple-300">Powered by AI + Story Protocol</span>
             </div>
-
-            <div className="glass-panel rounded-3xl p-8 shadow-2xl space-y-8">
-              {/* Type Selection */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {GENERATION_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => setSelectedType(option.id)}
-                    className={`p-4 rounded-xl border transition-all duration-300 text-left flex flex-col items-center text-center gap-2 ${selectedType === option.id
-                        ? 'bg-blue-500/20 border-blue-500/50 text-white shadow-lg shadow-blue-500/10'
-                        : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-                      }`}
-                  >
-                    <span className="text-2xl">{option.icon}</span>
-                    <span className="font-medium text-sm">{option.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-gray-300 ml-1">
-                  {selectedType === 'lyrics' ? 'What is the song about?' :
-                    selectedType === 'story' ? 'What is the story idea?' :
-                      selectedType === 'character' ? 'Describe the character concept' :
-                        'Describe the image you want to create'}
-                </label>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all resize-none"
-                  placeholder="Enter your prompt here..."
-                />
-              </div>
-
-              <button
-                onClick={generateContent}
-                disabled={loading}
-                className="btn-primary w-full py-4 text-lg font-medium shadow-lg shadow-blue-500/20"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Generating...
-                  </span>
-                ) : (
-                  '✨ Generate'
-                )}
-              </button>
-
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-xl flex items-center gap-3"
-                >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {error}
-                </motion.div>
-              )}
-
-              {/* Results Display */}
-              {(generatedContent || generatedImage) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-black/20 rounded-xl p-6 border border-white/5 space-y-6"
-                >
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-white">Generated Result</h3>
-                    {generatedContent && !generatedImage && (
-                      <button
-                        onClick={copyToClipboard}
-                        className="text-sm text-blue-400 hover:text-blue-300 flex items-center transition-colors"
-                      >
-                        {copySuccess ? 'Copied!' : 'Copy Text'}
-                      </button>
-                    )}
-                  </div>
-
-                  {generatedImage ? (
-                    <div className="space-y-4">
-                      <div className="relative aspect-square max-w-md mx-auto rounded-xl overflow-hidden shadow-2xl border border-white/10">
-                        <Image
-                          src={generatedImage}
-                          alt="Generated artwork"
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <p className="text-sm text-story-text-secondary italic text-center">
-                        Prompt: {generatedContent}
-                      </p>
-                      <button
-                        onClick={downloadImage}
-                        className="btn-secondary w-full py-3"
-                      >
-                        Download Image
-                      </button>
-                    </div>
-                  ) : (
-                    <pre className="whitespace-pre-wrap text-story-text-secondary font-mono text-sm leading-relaxed">
-                      {generatedContent}
-                    </pre>
-                  )}
-                </motion.div>
-              )}
-            </div>
+            <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+              AI <span className="text-gradient">Creative Studio</span>
+            </h1>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              Generate unique content with AI and automatically register it as IP on Story Protocol.
+              Own your creativity from the moment of creation.
+            </p>
           </motion.div>
+
+          <div className="grid lg:grid-cols-5 gap-6">
+            {/* Main Generator Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="lg:col-span-3"
+            >
+              <div className="glass-panel rounded-3xl p-8 space-y-6">
+                {/* Type Selection */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {GENERATION_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => setSelectedType(option.id)}
+                      className={`relative p-4 rounded-xl border transition-all duration-300 group overflow-hidden ${selectedType === option.id
+                          ? 'border-white/30 bg-white/10'
+                          : 'border-white/5 bg-white/5 hover:border-white/20 hover:bg-white/10'
+                        }`}
+                    >
+                      {selectedType === option.id && (
+                        <motion.div
+                          layoutId="selectedType"
+                          className={`absolute inset-0 bg-gradient-to-br ${option.gradient} opacity-20`}
+                        />
+                      )}
+                      <div className="relative z-10 flex flex-col items-center gap-2">
+                        <span className="text-2xl group-hover:scale-110 transition-transform">{option.icon}</span>
+                        <span className="text-sm font-medium text-white">{option.label}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Description */}
+                <div className={`p-4 rounded-xl bg-gradient-to-r ${selectedOption.gradient} bg-opacity-10 border border-white/10`}>
+                  <p className="text-sm text-gray-300">
+                    <span className="text-white font-medium">{selectedOption.icon} {selectedOption.label}:</span>{' '}
+                    {selectedOption.description}
+                  </p>
+                </div>
+
+                {/* Prompt Input */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-400">Your Prompt</label>
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={4}
+                    className="input-field resize-none"
+                    placeholder={selectedOption.placeholder}
+                  />
+                </div>
+
+                {/* Generate Button */}
+                <button
+                  onClick={generateContent}
+                  disabled={generating || !prompt.trim()}
+                  className="btn-primary w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generating ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Generating with AI...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <span>✨</span>
+                      Generate {selectedOption.label}
+                    </span>
+                  )}
+                </button>
+
+                {/* Error */}
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+
+                {/* Generated Content */}
+                <AnimatePresence mode="wait">
+                  {currentGeneration && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                          <span>{selectedOption.icon}</span>
+                          Generated {selectedOption.label}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => copyToClipboard(currentGeneration.content)}
+                            className="btn-ghost text-sm"
+                          >
+                            📋 Copy
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="bg-black/30 rounded-xl p-6 border border-white/5 max-h-80 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-gray-300 font-mono text-sm leading-relaxed">
+                          {currentGeneration.content}
+                        </pre>
+                      </div>
+
+                      {/* Register as IP CTA */}
+                      {!currentGeneration.registered ? (
+                        <div className="featured-card">
+                          <div className="featured-card-inner p-6">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <h4 className="text-lg font-bold text-white mb-1">
+                                  🎉 Register as IP on Story Protocol
+                                </h4>
+                                <p className="text-sm text-gray-400">
+                                  Protect your AI-generated content with on-chain ownership.
+                                </p>
+                              </div>
+                              {isConnected ? (
+                                <button
+                                  onClick={registerAsIP}
+                                  disabled={registering}
+                                  className="btn-accent whitespace-nowrap"
+                                >
+                                  {registering ? (
+                                    <span className="flex items-center gap-2">
+                                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                      Registering...
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-2">
+                                      <span>⚡</span>
+                                      Register IP
+                                    </span>
+                                  )}
+                                </button>
+                              ) : (
+                                <button onClick={connectWallet} className="btn-primary">
+                                  Connect Wallet
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="bg-green-500/10 border border-green-500/30 rounded-xl p-6 text-center"
+                        >
+                          <div className="text-4xl mb-2">🎉</div>
+                          <h4 className="text-lg font-bold text-green-400 mb-2">
+                            Successfully Registered as IP!
+                          </h4>
+                          <p className="text-sm text-gray-400 mb-4">
+                            Your content is now protected on Story Protocol.
+                          </p>
+                          {currentGeneration.ipId && (
+                            <a
+                              href={`https://aeneid.explorer.story.foundation/ipa/${currentGeneration.ipId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-primary"
+                            >
+                              View on Story Explorer ↗
+                            </a>
+                          )}
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            {/* Sidebar */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="lg:col-span-2 space-y-6"
+            >
+              {/* How It Works */}
+              <div className="glass-panel rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <span>🚀</span> How It Works
+                </h3>
+                <div className="space-y-4">
+                  {[
+                    { step: '1', title: 'Describe Your Idea', desc: 'Enter a prompt for the AI' },
+                    { step: '2', title: 'AI Generates', desc: 'Unique content created instantly' },
+                    { step: '3', title: 'Register as IP', desc: 'One-click protection on Story' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+                        {item.step}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white text-sm">{item.title}</p>
+                        <p className="text-xs text-gray-500">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Benefits */}
+              <div className="glass-panel rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <span>💎</span> Why Register AI Content?
+                </h3>
+                <ul className="space-y-3 text-sm">
+                  {[
+                    'Prove ownership with blockchain timestamp',
+                    'Earn royalties when others remix',
+                    'Track usage and derivatives',
+                    'License your IP globally',
+                  ].map((benefit, i) => (
+                    <li key={i} className="flex items-start gap-2 text-gray-400">
+                      <span className="text-green-400 mt-0.5">✓</span>
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Recent History */}
+              {history.length > 0 && (
+                <div className="glass-panel rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <span>📜</span> Recent
+                    </h3>
+                    <span className="text-xs text-gray-500">{history.length} items</span>
+                  </div>
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {history.slice(0, 5).map((item, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors"
+                        onClick={() => setCurrentGeneration(item)}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-400">
+                            {GENERATION_OPTIONS.find(o => o.id === item.type)?.icon} {item.type}
+                          </span>
+                          {item.registered && (
+                            <span className="badge badge-success text-xs py-0.5">✓ IP</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-white truncate">{item.prompt}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
         </div>
       </main>
     </div>
