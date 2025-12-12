@@ -5,13 +5,28 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useWalletConnection } from '../lib/useWalletConnection'
+import { 
+  Home, 
+  Disc3, 
+  Sparkles, 
+  Zap, 
+  BarChart3, 
+  Bell, 
+  Settings, 
+  Music, 
+  ChevronDown, 
+  LogOut, 
+  X, 
+  Menu, 
+  Shield 
+} from 'lucide-react'
 
 const NAV_LINKS = [
-  { href: '/', label: 'Home', icon: '🏠' },
-  { href: '/explore', label: 'Explore', icon: '🌐' },
-  { href: '/upload', label: 'Create', icon: '✨' },
-  { href: '/ai', label: 'AI Studio', icon: '🤖' },
-  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/', label: 'Home', Icon: Home },
+  { href: '/explore', label: 'Explore', Icon: Disc3 },
+  { href: '/upload', label: 'Create', Icon: Sparkles },
+  { href: '/ai', label: 'AI Studio', Icon: Zap },
+  { href: '/dashboard', label: 'Dashboard', Icon: BarChart3 },
 ]
 
 export default function Navigation() {
@@ -63,9 +78,9 @@ export default function Navigation() {
               <motion.div
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center text-xl shadow-lg shadow-purple-500/25"
+                className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/25"
               >
-                🎵
+                <Music className="w-5 h-5 text-white" />
               </motion.div>
               <span className="text-xl font-bold text-white group-hover:text-gradient transition-all">
                 Melodex
@@ -74,26 +89,29 @@ export default function Navigation() {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-1">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-all ${pathname === link.href
-                      ? 'text-white bg-white/10'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                  <span className="mr-2">{link.icon}</span>
-                  {link.label}
-                  {pathname === link.href && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-white/10"
-                      style={{ zIndex: -1 }}
-                    />
-                  )}
-                </Link>
-              ))}
+              {NAV_LINKS.map((link) => {
+                const LinkIcon = link.Icon;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${pathname === link.href
+                        ? 'text-white bg-white/10'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                    {link.label}
+                    {pathname === link.href && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-white/10"
+                        style={{ zIndex: -1 }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Right Side - Wallet & Actions */}
@@ -104,9 +122,7 @@ export default function Navigation() {
                   href="/notifications"
                   className="relative p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
+                  <Bell className="w-5 h-5" />
                   {notifications > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full text-xs font-bold text-white flex items-center justify-center animate-pulse">
                       {notifications > 9 ? '9+' : notifications}
@@ -121,10 +137,7 @@ export default function Navigation() {
                   href="/admin"
                   className="hidden sm:flex p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <Settings className="w-5 h-5" />
                 </Link>
               )}
 
@@ -134,9 +147,9 @@ export default function Navigation() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={connectWallet}
-                  className="btn-primary py-2.5 px-5 text-sm"
+                  className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2"
                 >
-                  <span>{isMobile ? '📱' : '🦊'}</span>
+                  <Shield className="w-4 h-4" />
                   Connect
                 </motion.button>
               ) : (
@@ -150,9 +163,7 @@ export default function Navigation() {
                     <span className="text-sm font-medium text-white">
                       {address?.slice(0, 6)}...{address?.slice(-4)}
                     </span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
                   </motion.button>
 
                   {/* Dropdown */}
@@ -162,14 +173,14 @@ export default function Navigation() {
                         href="/dashboard"
                         className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
                       >
-                        <span>📊</span>
+                        <BarChart3 className="w-4 h-4" />
                         Dashboard
                       </Link>
                       <Link
                         href="/upload"
                         className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
                       >
-                        <span>✨</span>
+                        <Sparkles className="w-4 h-4" />
                         Create IP
                       </Link>
                       <div className="h-px bg-white/10 my-2" />
@@ -177,7 +188,7 @@ export default function Navigation() {
                         onClick={disconnectWallet}
                         className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
                       >
-                        <span>🚪</span>
+                        <LogOut className="w-4 h-4" />
                         Disconnect
                       </button>
                     </div>
@@ -190,13 +201,11 @@ export default function Navigation() {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="lg:hidden p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {mobileMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
               </button>
             </div>
           </div>
@@ -235,27 +244,28 @@ export default function Navigation() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
               <nav className="space-y-2">
-                {NAV_LINKS.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all ${pathname === link.href
-                        ? 'text-white bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-white/10'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                      }`}
-                  >
-                    <span className="text-xl">{link.icon}</span>
-                    {link.label}
-                  </Link>
-                ))}
+                {NAV_LINKS.map((link) => {
+                  const LinkIcon = link.Icon;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-all ${pathname === link.href
+                          ? 'text-white bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-white/10'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                      <LinkIcon className="w-5 h-5" />
+                      {link.label}
+                    </Link>
+                  );
+                })}
 
                 {isConnected && (
                   <>
@@ -265,7 +275,7 @@ export default function Navigation() {
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
                     >
-                      <span className="text-xl">🔔</span>
+                      <Bell className="w-5 h-5" />
                       Notifications
                       {notifications > 0 && (
                         <span className="ml-auto px-2 py-0.5 bg-red-500 rounded-full text-xs text-white">
@@ -278,7 +288,7 @@ export default function Navigation() {
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all"
                     >
-                      <span className="text-xl">⚙️</span>
+                      <Settings className="w-5 h-5" />
                       Admin
                     </Link>
                   </>

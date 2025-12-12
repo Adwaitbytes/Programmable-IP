@@ -3,8 +3,9 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from './providers/ThemeProvider'
 import { Web3Provider } from './providers/Web3Provider'
+import CursorEffects from './components/CursorEffects'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'] })
 
 export const metadata: Metadata = {
   title: 'Story Music dApp - Next Generation Music IP Platform',
@@ -29,10 +30,14 @@ export default function RootLayout({
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
-      <body className={`${inter.className} antialiased transition-colors duration-200`}>
+      <body className={`${inter.className} antialiased transition-colors duration-200 cursor-none`}>
+        <CursorEffects />
         <Web3Provider>
           <ThemeProvider>
-            <div className="min-h-screen text-story-text-primary">
+            <div className="min-h-screen text-story-text-primary relative overflow-hidden">
+              {/* Premium background with subtle gradient */}
+              <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950" />
+              <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_50%,rgba(139,92,246,0.05),transparent_50%)]" />
               {children}
             </div>
           </ThemeProvider>

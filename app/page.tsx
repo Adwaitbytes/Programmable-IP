@@ -4,8 +4,15 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navigation from './components/Navigation'
 import MusicPlayer from './components/MusicPlayer'
+import MoneyRainEffect from './components/MoneyRainEffect'
 import Link from 'next/link'
 import { useWalletConnection } from './lib/useWalletConnection'
+import { 
+  Sparkles, TrendingUp, Shield, Zap, 
+  Music, Users, DollarSign, Link2,
+  Play, ExternalLink, Radio, Disc3,
+  ChevronRight, Star, Award, Crown
+} from 'lucide-react'
 
 type AssetType = 'music' | 'character' | 'story' | 'image' | 'concept' | 'other'
 
@@ -26,13 +33,13 @@ interface AssetData {
   hidden?: boolean
 }
 
-const ASSET_TYPE_ICONS: Record<AssetType, string> = {
-  music: '🎵',
-  character: '🦸',
-  story: '📚',
-  image: '🎨',
-  concept: '💡',
-  other: '📄',
+const ASSET_TYPE_ICONS: Record<AssetType, any> = {
+  music: Music,
+  character: Users,
+  story: Radio,
+  image: Disc3,
+  concept: Sparkles,
+  other: Star,
 }
 
 const ASSET_TYPE_COLORS: Record<AssetType, string> = {
@@ -46,25 +53,25 @@ const ASSET_TYPE_COLORS: Record<AssetType, string> = {
 
 const FEATURES = [
   {
-    icon: '🚀',
+    icon: Zap,
     title: 'One-Click IP Registration',
     description: 'Register any creative work as programmable IP on Story Protocol in seconds.',
     gradient: 'from-blue-500 to-cyan-500',
   },
   {
-    icon: '🤖',
+    icon: Sparkles,
     title: 'AI-Powered Creation',
     description: 'Generate stories, characters, and concepts with AI and auto-register as IP.',
     gradient: 'from-purple-500 to-pink-500',
   },
   {
-    icon: '💰',
+    icon: DollarSign,
     title: 'Automatic Royalties',
     description: 'Earn royalties automatically when your IP is remixed or licensed.',
     gradient: 'from-amber-500 to-orange-500',
   },
   {
-    icon: '🔗',
+    icon: Shield,
     title: 'On-Chain Provenance',
     description: 'Immutable proof of ownership stored forever on the blockchain.',
     gradient: 'from-green-500 to-emerald-500',
@@ -72,10 +79,10 @@ const FEATURES = [
 ]
 
 const STATS = [
-  { value: '10K+', label: 'IPs Registered', icon: '📜' },
-  { value: '5K+', label: 'Creators', icon: '👥' },
-  { value: '$50K+', label: 'Royalties Paid', icon: '💎' },
-  { value: '100%', label: 'On-Chain', icon: '⛓️' },
+  { value: '10K+', label: 'IPs Registered', icon: Award },
+  { value: '5K+', label: 'Creators', icon: Users },
+  { value: '$50K+', label: 'Royalties Paid', icon: TrendingUp },
+  { value: '100%', label: 'On-Chain', icon: Link2 },
 ]
 
 export default function Home() {
@@ -85,9 +92,16 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [totalAssets, setTotalAssets] = useState(0)
   const [uniqueCreators, setUniqueCreators] = useState(0)
+  const [showMoneyRain, setShowMoneyRain] = useState(false)
 
   useEffect(() => {
     fetchFeaturedAssets()
+  }, [])
+
+  useEffect(() => {
+    // Trigger money rain on mount for demo effect
+    const timer = setTimeout(() => setShowMoneyRain(true), 2000)
+    return () => clearTimeout(timer)
   }, [])
 
   const fetchFeaturedAssets = async () => {
@@ -110,6 +124,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#030712]">
+      <MoneyRainEffect trigger={showMoneyRain} />
+      
       {/* Animated Background */}
       <div className="bg-animated-gradient">
         <div className="bg-orb bg-orb-1" />
@@ -130,15 +146,19 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
+              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 backdrop-blur-sm mb-8 hover:border-purple-500/40 transition-all duration-300 group"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
               </span>
-              <span className="text-sm font-medium text-gray-300">
-                Powered by <span className="text-gradient font-semibold">Story Protocol</span>
+              <span className="text-sm font-medium text-gray-200 flex items-center gap-2">
+                Powered by <span className="text-gradient font-semibold flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  Story Protocol
+                </span>
               </span>
+              <Sparkles className="w-4 h-4 text-purple-400 group-hover:rotate-12 transition-transform" />
             </motion.div>
 
             {/* Main Heading */}
@@ -173,18 +193,25 @@ export default function Home() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
               {!isConnected ? (
-                <button onClick={connectWallet} className="btn-primary text-lg px-8 py-4">
-                  <span className="text-xl">{isMobile ? '📱' : '🦊'}</span>
+                <motion.button 
+                  onClick={connectWallet} 
+                  className="btn-primary text-lg px-8 py-4 flex items-center gap-3 group"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Shield className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                   Connect Wallet
-                </button>
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
               ) : (
-                <Link href="/upload" className="btn-primary text-lg px-8 py-4">
-                  <span className="text-xl">✨</span>
+                <Link href="/upload" className="btn-primary text-lg px-8 py-4 flex items-center gap-3 group">
+                  <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                   Register Your IP
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               )}
-              <Link href="/explore" className="btn-secondary text-lg px-8 py-4">
-                <span className="text-xl">🌐</span>
+              <Link href="/explore" className="btn-secondary text-lg px-8 py-4 flex items-center gap-3 group">
+                <Disc3 className="w-5 h-5 group-hover:rotate-45 transition-transform" />
                 Explore IP Universe
               </Link>
             </motion.div>
@@ -196,15 +223,20 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="flex flex-wrap items-center justify-center gap-8 mt-16"
             >
-              {STATS.map((stat, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="text-2xl">{stat.icon}</div>
-                  <div className="text-left">
-                    <div className="text-2xl font-bold text-white">{stat.value}</div>
-                    <div className="text-sm text-gray-500">{stat.label}</div>
+              {STATS.map((stat, i) => {
+                const StatIcon = stat.icon;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 flex items-center justify-center">
+                      <StatIcon className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-2xl font-bold text-white">{stat.value}</div>
+                      <div className="text-sm text-gray-500">{stat.label}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </motion.div>
           </div>
 
@@ -290,22 +322,25 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map((feature, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="glass-panel-hover rounded-2xl p-6 group"
-              >
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform`}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
-              </motion.div>
-            ))}
+            {FEATURES.map((feature, i) => {
+              const FeatureIcon = feature.icon;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="glass-panel-hover rounded-2xl p-6 group"
+                >
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    <FeatureIcon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -326,9 +361,9 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: '01', title: 'Upload Your Work', desc: 'Upload music, art, stories, or any creative content you want to protect.', icon: '📤' },
-              { step: '02', title: 'Set License Terms', desc: 'Choose royalty rates, licensing options, and commercial terms.', icon: '⚖️' },
-              { step: '03', title: 'Register on Story', desc: 'One click to register your IP on-chain with full provenance.', icon: '✅' },
+              { step: '01', title: 'Upload Your Work', desc: 'Upload music, art, stories, or any creative content you want to protect.', Icon: Play },
+              { step: '02', title: 'Set License Terms', desc: 'Choose royalty rates, licensing options, and commercial terms.', Icon: Shield },
+              { step: '03', title: 'Register on Story', desc: 'One click to register your IP on-chain with full provenance.', Icon: Award },
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -338,7 +373,9 @@ export default function Home() {
                 transition={{ delay: i * 0.2 }}
                 className="relative text-center"
               >
-                <div className="text-6xl mb-4">{item.icon}</div>
+                <div className="inline-flex w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 items-center justify-center mb-6 backdrop-blur-sm">
+                  <item.Icon className="w-10 h-10 text-purple-400" />
+                </div>
                 <div className="text-6xl font-bold text-gradient opacity-20 absolute top-0 right-0">{item.step}</div>
                 <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
                 <p className="text-gray-400">{item.desc}</p>
@@ -376,8 +413,9 @@ export default function Home() {
                 <h2 className="text-3xl font-bold text-white mb-2">Featured IPs</h2>
                 <p className="text-gray-400">Discover the latest registered intellectual properties</p>
               </div>
-              <Link href="/explore" className="btn-ghost text-primary-400">
-                View All →
+              <Link href="/explore" className="btn-ghost text-primary-400 flex items-center gap-2 group">
+                View All
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </motion.div>
 
@@ -397,16 +435,27 @@ export default function Home() {
                       <img src={asset.coverUrl} alt={asset.title} />
                     ) : (
                       <div className={`w-full h-full bg-gradient-to-br ${ASSET_TYPE_COLORS[asset.type]} flex items-center justify-center`}>
-                        <span className="text-7xl">{ASSET_TYPE_ICONS[asset.type]}</span>
+                        {(() => {
+                          const AssetIcon = ASSET_TYPE_ICONS[asset.type];
+                          return <AssetIcon className="w-20 h-20 text-white" />;
+                        })()}
                       </div>
                     )}
                     <div className="asset-card-overlay" />
                     <div className="absolute top-3 right-3">
-                      <span className={`badge badge-${asset.type}`}>
-                        {ASSET_TYPE_ICONS[asset.type]} {asset.type}
+                      <span className={`badge badge-${asset.type} flex items-center gap-1.5`}>
+                        {(() => {
+                          const AssetIcon = ASSET_TYPE_ICONS[asset.type];
+                          return <AssetIcon className="w-3.5 h-3.5" />;
+                        })()}
+                        {asset.type}
                       </span>
                     </div>
-                    {asset.type === 'music' && <div className="asset-card-play">▶</div>}
+                    {asset.type === 'music' && (
+                      <div className="asset-card-play">
+                        <Play className="w-5 h-5" fill="currentColor" />
+                      </div>
+                    )}
                   </div>
                   <div className="p-5 relative z-10">
                     <h3 className="font-bold text-lg text-white mb-1 truncate">{asset.title}</h3>
@@ -420,10 +469,11 @@ export default function Home() {
                           href={`https://aeneid.explorer.story.foundation/ipa/${asset.ipId}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="relative z-20 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors border border-white/10 pointer-events-auto"
+                          className="relative z-20 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors border border-white/10 pointer-events-auto flex items-center gap-1.5 group"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          View IP ↗
+                          View IP
+                          <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                         </a>
                       )}
                     </div>
@@ -447,8 +497,8 @@ export default function Home() {
             <div className="featured-card-inner p-8 sm:p-12">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <span className="featured-badge mb-4">
-                    <span className="animate-pulse">✨</span> New Feature
+                  <span className="featured-badge mb-4 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 animate-pulse" /> New Feature
                   </span>
                   <h2 className="text-3xl sm:text-4xl font-bold text-white mt-4 mb-4">
                     AI-Powered <span className="text-gradient">IP Creation</span>
@@ -458,25 +508,33 @@ export default function Home() {
                     Every output is automatically registered as IP on Story Protocol
                     with full provenance and ownership rights.
                   </p>
-                  <Link href="/ai" className="btn-accent">
-                    <span>🤖</span>
+                  <Link href="/ai" className="btn-accent flex items-center gap-2 inline-flex">
+                    <Zap className="w-5 h-5" />
                     Try AI Assistant
                   </Link>
                 </div>
                 <div className="relative">
                   <div className="glass-panel rounded-2xl p-6 space-y-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm">🤖</div>
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-white" />
+                      </div>
                       <div className="flex-1 bg-white/5 rounded-2xl rounded-tl-none p-4">
                         <p className="text-sm text-gray-300">Create a cyberpunk hero character with electric blue powers...</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3 justify-end">
                       <div className="flex-1 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl rounded-tr-none p-4 border border-purple-500/20">
-                        <p className="text-sm text-gray-300">✨ Generating character...</p>
-                        <p className="text-xs text-purple-400 mt-2">→ Auto-registering on Story Protocol</p>
+                        <p className="text-sm text-gray-300 flex items-center gap-2">
+                          <Sparkles className="w-4 h-4" /> Generating character...
+                        </p>
+                        <p className="text-xs text-purple-400 mt-2 flex items-center gap-1">
+                          <ChevronRight className="w-3 h-3" /> Auto-registering on Story Protocol
+                        </p>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-sm">⚡</div>
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                        <Zap className="w-4 h-4 text-white" />
+                      </div>
                     </div>
                   </div>
                   <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-gradient-to-br from-purple-500/20 to-pink-500/20 blur-3xl rounded-full" />
@@ -520,17 +578,21 @@ export default function Home() {
       <footer className="relative border-t border-white/5 py-12 px-4">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl">🎵</div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Music className="w-5 h-5 text-white" />
+            </div>
             <span className="text-xl font-bold text-white">Melodex</span>
           </div>
-          <p className="text-gray-500 text-sm">
-            Built with ❤️ for Story Protocol • © 2025 Melodex
+          <p className="text-gray-500 text-sm flex items-center gap-2">
+            Built with <Crown className="w-3.5 h-3.5 text-purple-400" /> for Story Protocol • © 2025 Melodex
           </p>
           <div className="flex items-center gap-6">
-            <a href="https://story.foundation" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">
+            <a href="https://story.foundation" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1.5">
+              <ExternalLink className="w-3.5 h-3.5" />
               Story Protocol
             </a>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1.5">
+              <ExternalLink className="w-3.5 h-3.5" />
               GitHub
             </a>
           </div>
