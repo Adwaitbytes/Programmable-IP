@@ -268,13 +268,20 @@ export default function Home() {
                         <img src={asset.coverUrl} alt={asset.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className={`w-full h-full bg-gradient-to-br ${ASSET_TYPE_COLORS[asset.type]} flex items-center justify-center`}>
-                          <span className="text-6xl">{ASSET_TYPE_ICONS[asset.type]}</span>
+                          {(() => {
+                            const AssetIcon = ASSET_TYPE_ICONS[asset.type];
+                            return <AssetIcon className="w-16 h-16 text-white" />;
+                          })()}
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       <div className="absolute top-3 right-3">
-                        <span className={`badge badge-${asset.type}`}>
-                          {ASSET_TYPE_ICONS[asset.type]} {asset.type}
+                        <span className={`badge badge-${asset.type} flex items-center gap-1.5`}>
+                          {(() => {
+                            const AssetIcon = ASSET_TYPE_ICONS[asset.type];
+                            return <AssetIcon className="w-3 h-3" />;
+                          })()}
+                          {asset.type}
                         </span>
                       </div>
                       {asset.type === 'music' && (
