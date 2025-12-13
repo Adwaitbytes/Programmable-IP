@@ -342,23 +342,30 @@ export default function DashboardPage() {
                           href={`https://aeneid.explorer.story.foundation/ipa/${asset.ipId}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 text-center py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-medium transition-colors"
+                          className="relative z-20 flex-1 text-center py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-medium transition-colors pointer-events-auto"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           View IP ↗
                         </a>
                       )}
                       <button
-                        onClick={() => handleToggleHide(asset.id, asset.title, asset.hidden || false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleHide(asset.id, asset.title, asset.hidden || false);
+                        }}
                         disabled={toggling === asset.id}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+                        className="relative z-20 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors disabled:opacity-50 pointer-events-auto"
                         title={asset.hidden ? 'Show' : 'Hide'}
                       >
                         {toggling === asset.id ? '...' : asset.hidden ? '👁️' : '🔒'}
                       </button>
                       <button
-                        onClick={() => handleDelete(asset.id, asset.title)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(asset.id, asset.title);
+                        }}
                         disabled={deleting === asset.id}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                        className="relative z-20 p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50 pointer-events-auto"
                         title="Delete"
                       >
                         {deleting === asset.id ? '...' : '🗑️'}
